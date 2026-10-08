@@ -29,7 +29,10 @@ claude.ai のチャットで設計・構築してきた内容の引き継ぎ。C
 - WSL ディストリ: `Ubuntu`（**既定 `*`**、Ubuntu 26.04.1 LTS、2026-10-08 追加）、`podman-claudeVM`、`podman-machine-default`
   - 既定を戻す場合: `wsl --set-default podman-claudeVM`
 - `dev.containers.executeInWSL` はオフ
-- ワークスペースは Windows 側（`C:\Users\...\VScode\gui-app-env`）
+- ワークスペースは Windows 側（`C:\Users\...\VScode\python-gui-app-env`。2026-10-09 に `gui-app-env` から改名）
+- GitHub: https://github.com/k1wtnb/python-gui-app-env（`main` を push 済み）
+- Claude / gh の認証ボリューム名（`claude-config-<ID>`、`gh-config-<ID>`）の `<ID>` はフォルダのパスから作られる。
+  フォルダを移動・改名すると新しい空のボリュームになるので、旧ボリュームから `cp -a` でコピーする（改名時に実施済み。旧 `1hck…` ボリュームは 2026-10-09 に削除）
 
 ## これまでに発生した問題と対処
 
@@ -50,7 +53,10 @@ claude.ai のチャットで設計・構築してきた内容の引き継ぎ。C
    - 再現率は**一定しない**: VS Code からは 2/2 回止まった。CLI 直接実行では 1/2 回止まり、その後 4 回連続は成功した（その間は 0/4）。
      Machine 内でローカル実行した場合は、journald・file のどちらでも取り逃がさなかった。
    - その後、VS Code からの Reopen / Rebuild は2回とも接続できた（1回目は既に動いていたコンテナを使ったので、イベント待ちは通っていない）。
-   - **当面の運用**: 「Container started」で1分以上止まったら、ウィンドウを閉じて再実行する。頻発するようなら下の b → c を試す。
+   - **当面の運用**: 「Container started」で1分以上止まっても、コンテナ自体は起動している（`podman ps` で Up）。
+     VS Code を閉じて **Reopen in Container**（Rebuild ではない）を選ぶと、動いているコンテナに「Container already running」の経路で接続する。
+     この経路はイベント待ちをしないので確実に通る（2026-10-09 の改名後の初回起動もこれで接続した）。
+     postCreateCommand / postStartCommand は、この再接続のときに実行される。頻発して困るようなら下の b → c を試す。
    - **対処案（未実施）**
      a. VS Code から再試行する（上記の運用）
      b. Machine の events_logger を `file` にして比べる（`/etc/containers/containers.conf.d/` に drop-in を置き、podman.service を再起動。他の DevContainer の接続が切れる点に注意）

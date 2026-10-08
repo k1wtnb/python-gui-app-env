@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/local-gui-check.sh:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv lock:*)",
+      "Bash(uv tree:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh run download:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(uv add:*)",
+      "Bash(uv remove:*)"
+    ],
+    "deny": [
+      "Edit(.github/workflows/**)",
+      "Edit(runner/**)",
+      "Edit(.devcontainer/**)",
+      "Edit(.claude/settings.json)",
+      "Bash(gh secret:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(sudo:*)",
+      "Bash(pip install:*)",
+      "Bash(uv pip install:*)"
+    ]
+  }
+}

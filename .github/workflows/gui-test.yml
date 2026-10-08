@@ -1,0 +1,74 @@
+name: gui-test
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: gui-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gui-test:
+    name: gui-test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runner: [self-hosted, linux, gui-test]
+          - os: windows
+            runner: [self-hosted, windows, gui-test]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      UV_LINK_MODE: copy
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check uv (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw "uv が見つかりません。検証PCに uv をインストールしてください" }
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: GUI tests
+        run: uv run pytest --screenshot-dir artifacts/screenshots/${{ matrix.os }} --junitxml artifacts/junit-${{ matrix.os }}.xml
+
+      - name: Build
+        run: uv run pyinstaller --noconfirm --windowed --name myapp --paths src src/myapp/__main__.py
+
+      - name: Smoke test packaged app (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a ./dist/myapp/myapp --smoke-test artifacts/screenshots/linux/packaged_smoke.png
+
+      - name: Smoke test packaged app (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $png = Join-Path $PWD 'artifacts\screenshots\windows\packaged_smoke.png'
+          $p = Start-Process -FilePath '.\dist\myapp\myapp.exe' -ArgumentList @('--smoke-test', "`"$png`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "smoke test failed (exit $($p.ExitCode))" }
+
+      # ---------------- 結果の回収（Claude が gh run download で取得する） ----------------
+      - name: Upload screenshots & reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-results-${{ matrix.os }}
+          path: artifacts/
+          if-no-files-found: warn
+
+      - name: Upload build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myapp-${{ matrix.os }}
+          path: dist/myapp/

@@ -1,0 +1,34 @@
+# Linux 検証用 GitHub Actions ランナー（1ジョブごとに使い捨て）
+FROM docker.io/library/ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl git jq tar \
+      python3 binutils \
+      xvfb xauth \
+      libgl1 libegl1 libxkbcommon0 libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+      libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+      libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 \
+      libglib2.0-0t64 fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+RUN useradd -m -s /bin/bash runner
+WORKDIR /home/runner/actions-runner
+
+# 最新の actions/runner を取得（イメージ再ビルドで更新）
+RUN set -eux; \
+    tag=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name); \
+    ver=${tag#v}; \
+    curl -fsSL -o runner.tgz "https://github.com/actions/runner/releases/download/${tag}/actions-runner-linux-x64-${ver}.tar.gz"; \
+    tar xzf runner.tgz; rm runner.tgz; \
+    ./bin/installdependencies.sh; \
+    rm -rf /var/lib/apt/lists/*; \
+    chown -R runner:runner /home/runner
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+
+USER runner
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

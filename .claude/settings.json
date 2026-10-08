@@ -26,6 +26,7 @@
       "Edit(runner/**)",
       "Edit(.devcontainer/**)",
       "Edit(.claude/settings.json)",
+      "Edit(.claude/settings.local.json)",
       "Bash(gh secret:*)",
       "Bash(gh auth:*)",
       "Bash(gh api:*)",
